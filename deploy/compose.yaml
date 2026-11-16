@@ -34,6 +34,15 @@ services:
       # Acknowledge every H02 message (ST-901 sends V8, which is not acked by default);
       # without it the tracker resends each position and replays old ones.
       H02_ACK: "true"
+      # GPS drift while parked (e.g. indoors): keep the last known coordinates when the
+      # position moves less than 50 m or has no valid fix. Positions and alarms are kept;
+      # only coordinates are corrected. (filter.invalid is avoided on purpose: it would
+      # drop alarm messages that arrive without a fix.)
+      COORDINATES_FILTER: "true"
+      COORDINATES_MIN_ERROR: "50"
+      COORDINATES_FILTER_INVALID: "true"
+      # Count as moving only above ~5 km/h (value in knots; default 0.01)
+      EVENT_MOTION_SPEED_THRESHOLD: "2.7"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/api/health"]
       interval: 2m
