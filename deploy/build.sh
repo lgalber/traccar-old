@@ -6,11 +6,14 @@ set -e
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 OUT="$ROOT/deploy/out"
+# Web app source: the traccar-web submodule by default, or another checkout via WEB_DIR
+WEB=$(cd "${WEB_DIR:-$ROOT/traccar-web}" && pwd)
 
-if [ ! -f "$ROOT/traccar-web/package.json" ]; then
-    echo "traccar-web submodule is empty. Run: git submodule update --init traccar-web" >&2
+if [ ! -f "$WEB/package.json" ]; then
+    echo "No web app found in $WEB. Run: git submodule update --init traccar-web" >&2
     exit 1
 fi
+echo "==> Web app source: $WEB"
 
 echo "==> Building server"
 docker run --rm \
@@ -19,7 +22,7 @@ docker run --rm \
 
 echo "==> Building web app"
 docker run --rm \
-    -v "$ROOT/traccar-web":/src -v /src/node_modules -v traccar-npm-cache:/root/.npm -w /src \
+    -v "$WEB":/src -v /src/node_modules -v traccar-npm-cache:/root/.npm -w /src \
     node:22 sh -c "npm ci --no-audit --no-fund && npm run build"
 
 echo "==> Staging package in $OUT"
@@ -30,7 +33,7 @@ cp "$ROOT"/target/lib/* "$OUT/lib/"
 cp "$ROOT"/schema/* "$OUT/schema/"
 cp -r "$ROOT"/templates/* "$OUT/templates/"
 cp "$ROOT/setup/traccar.xml" "$OUT/conf/"
-cp -r "$ROOT"/traccar-web/build/* "$OUT/web/"
-cp -r "$ROOT"/traccar-web/src/resources/l10n/* "$OUT/templates/translations/"
+cp -r "$WEB"/build/* "$OUT/web/"
+cp -r "$WEB"/src/resources/l10n/* "$OUT/templates/translations/"
 
 echo "==> Done: $(du -sh "$OUT" | cut -f1)"
