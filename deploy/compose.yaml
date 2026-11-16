@@ -55,3 +55,5 @@ services:
       - "5013:5013/udp"
     volumes:
       - /opt/traccar/logs:/opt/traccar/logs
+      # Uploaded device icons/images and device media; must survive container recreation
+      - /opt/traccar/media:/opt/traccar/media
