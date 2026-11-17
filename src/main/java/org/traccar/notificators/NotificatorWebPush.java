@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
-import org.traccar.helper.WebHelper;
 import org.traccar.helper.WebPush;
 import org.traccar.model.Event;
 import org.traccar.model.Position;
@@ -36,10 +35,12 @@ import org.traccar.storage.query.Request;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.Response;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,8 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Sends notifications as Web Push messages to every browser/device where the user enabled notifications.
  * Subscriptions the push service reports as gone (404/410) are removed.
+ * <p>
+ * Uses the JDK HTTP client: the Jersey client drops the Content-Encoding header, which push services require.
  */
 @Singleton
 public class NotificatorWebPush extends Notificator {
@@ -55,7 +58,9 @@ public class NotificatorWebPush extends Notificator {
     private static final Logger LOGGER = LoggerFactory.getLogger(NotificatorWebPush.class);
 
     private final Storage storage;
-    private final Client client;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
     private final ObjectMapper objectMapper;
     private final String publicKey;
     private final String privateKey;
@@ -64,11 +69,9 @@ public class NotificatorWebPush extends Notificator {
 
     @Inject
     public NotificatorWebPush(
-            Config config, NotificationFormatter notificationFormatter, Storage storage, Client client,
-            ObjectMapper objectMapper) {
+            Config config, NotificationFormatter notificationFormatter, Storage storage, ObjectMapper objectMapper) {
         super(notificationFormatter);
         this.storage = storage;
-        this.client = client;
         this.objectMapper = objectMapper;
         publicKey = config.getString(Keys.NOTIFICATOR_WEBPUSH_PUBLIC_KEY);
         privateKey = config.getString(Keys.NOTIFICATOR_WEBPUSH_PRIVATE_KEY);
@@ -104,25 +107,32 @@ public class NotificatorWebPush extends Notificator {
         return objectMapper.writeValueAsString(data).getBytes(StandardCharsets.UTF_8);
     }
 
+    static HttpRequest buildRequest(String endpoint, byte[] body, String authorization) {
+        return HttpRequest.newBuilder(URI.create(endpoint))
+                .timeout(Duration.ofSeconds(30))
+                .header("TTL", "86400")
+                .header("Urgency", "high")
+                .header("Content-Type", "application/octet-stream")
+                .header("Content-Encoding", "aes128gcm")
+                .header("Authorization", authorization)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build();
+    }
+
     private CompletableFuture<Void> send(PushSubscription subscription, byte[] payload, long now) {
         try {
             byte[] body = WebPush.encrypt(
                     payload,
                     WebPush.decodeBase64Url(subscription.getP256dh()),
                     WebPush.decodeBase64Url(subscription.getAuth()));
-            var request = client.target(subscription.getEndpoint()).request()
-                    .header("TTL", "86400")
-                    .header("Urgency", "high")
-                    .header("Content-Encoding", "aes128gcm")
-                    .header("Authorization", WebPush.vapidAuthorization(
-                            subscription.getEndpoint(), publicKey, privateKey, subject, now));
-            return WebHelper.post(request, Entity.entity(body, "application/octet-stream"), response -> {
-                int status = response.getStatus();
-                if (status == Response.Status.NOT_FOUND.getStatusCode()
-                        || status == Response.Status.GONE.getStatusCode()) {
+            HttpRequest request = buildRequest(subscription.getEndpoint(), body, WebPush.vapidAuthorization(
+                    subscription.getEndpoint(), publicKey, privateKey, subject, now));
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
+                int status = response.statusCode();
+                if (status == 404 || status == 410) {
                     remove(subscription);
                 } else if (status >= 300) {
-                    LOGGER.warn("Web Push failed with status {}: {}", status, response.readEntity(String.class));
+                    LOGGER.warn("Web Push failed with status {}: {}", status, response.body());
                 }
             });
         } catch (Exception e) {
