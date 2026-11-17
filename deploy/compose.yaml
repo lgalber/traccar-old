@@ -73,3 +73,22 @@ services:
       - /opt/traccar/logs:/opt/traccar/logs
       # Uploaded device icons/images and device media; must survive container recreation
       - /opt/traccar/media:/opt/traccar/media
+
+  # Dynamic DNS: keeps a DNS-only Cloudflare record (e.g. gps.example.com) pointed at the host's public IP,
+  # so trackers can connect by name and survive public IP changes. Enabled with COMPOSE_PROFILES=ddns in .env,
+  # together with CF_API_TOKEN (Cloudflare token limited to "Edit zone DNS") and DDNS_DOMAINS.
+  ddns:
+    image: favonia/cloudflare-ddns:1
+    profiles: ["ddns"]
+    restart: unless-stopped
+    network_mode: host
+    read_only: true
+    cap_drop: [all]
+    security_opt: ["no-new-privileges:true"]
+    user: "1000:1000"
+    environment:
+      CLOUDFLARE_API_TOKEN: ${CF_API_TOKEN:-}
+      DOMAINS: ${DDNS_DOMAINS:-}
+      PROXIED: "false"
+      IP6_PROVIDER: none
+      UPDATE_CRON: "@every 5m"
