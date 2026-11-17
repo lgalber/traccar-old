@@ -23,7 +23,7 @@ ssh "$HOST" "set -e; cd $REMOTE_DIR
         echo \"DB_PASSWORD=\$(openssl rand -hex 16)\" > .env
         echo 'Generated new database password in ~/$REMOTE_DIR/.env'
     fi
-    sudo mkdir -p /opt/traccar/postgres /opt/traccar/logs
+    sudo mkdir -p /opt/traccar/postgres /opt/traccar/logs /opt/traccar/media
     if docker compose version >/dev/null 2>&1; then DC='docker compose'; else DC=docker-compose; fi
     \$DC up -d --build
     \$DC ps"

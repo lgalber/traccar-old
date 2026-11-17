@@ -34,6 +34,31 @@ services:
       # Acknowledge every H02 message (ST-901 sends V8, which is not acked by default);
       # without it the tracker resends each position and replays old ones.
       H02_ACK: "true"
+      # GPS drift while parked (e.g. indoors): keep the last known coordinates when the
+      # position moves less than 50 m or has no valid fix. Positions and alarms are kept;
+      # only coordinates are corrected. (filter.invalid is avoided on purpose: it would
+      # drop alarm messages that arrive without a fix.)
+      COORDINATES_FILTER: "true"
+      COORDINATES_MIN_ERROR: "50"
+      COORDINATES_FILTER_INVALID: "true"
+      # Count as moving only above ~5 km/h (value in knots; default 0.01)
+      EVENT_MOTION_SPEED_THRESHOLD: "2.7"
+      # Public address (links in notifications and emails)
+      WEB_URL: ${WEB_URL:-}
+      # Notification channels; webpush = browser/phone notifications (fork feature)
+      NOTIFICATOR_TYPES: "web,mail,command,webpush"
+      NOTIFICATOR_WEBPUSH_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
+      NOTIFICATOR_WEBPUSH_PRIVATE_KEY: ${WEBPUSH_PRIVATE_KEY:-}
+      NOTIFICATOR_WEBPUSH_SUBJECT: ${WEBPUSH_SUBJECT:-}
+      # Email through Gmail SMTP (app password in .env; empty values leave mail unconfigured)
+      MAIL_SMTP_HOST: smtp.gmail.com
+      MAIL_SMTP_PORT: "587"
+      MAIL_SMTP_STARTTLS_ENABLE: "true"
+      MAIL_SMTP_STARTTLS_REQUIRED: "true"
+      MAIL_SMTP_USERNAME: ${SMTP_USERNAME:-}
+      MAIL_SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_SMTP_FROM: ${SMTP_USERNAME:-}
+      MAIL_SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Traccar}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/api/health"]
       interval: 2m
@@ -46,3 +71,5 @@ services:
       - "5013:5013/udp"
     volumes:
       - /opt/traccar/logs:/opt/traccar/logs
+      # Uploaded device icons/images and device media; must survive container recreation
+      - /opt/traccar/media:/opt/traccar/media
