@@ -1489,6 +1489,28 @@ public final class Keys {
             List.of(KeyType.CONFIG));
 
     /**
+     * Web Push (VAPID) public key: uncompressed P-256 point, base64url without padding. Shared with browsers
+     * when they subscribe.
+     */
+    public static final ConfigKey<String> NOTIFICATOR_WEBPUSH_PUBLIC_KEY = new StringConfigKey(
+            "notificator.webpush.publicKey",
+            List.of(KeyType.CONFIG));
+
+    /**
+     * Web Push (VAPID) private key: P-256 private scalar (32 bytes), base64url without padding.
+     */
+    public static final ConfigKey<String> NOTIFICATOR_WEBPUSH_PRIVATE_KEY = new StringConfigKey(
+            "notificator.webpush.privateKey",
+            List.of(KeyType.CONFIG));
+
+    /**
+     * Web Push (VAPID) contact, for example mailto:admin@example.com. Push services may use it to reach the sender.
+     */
+    public static final ConfigKey<String> NOTIFICATOR_WEBPUSH_SUBJECT = new StringConfigKey(
+            "notificator.webpush.subject",
+            List.of(KeyType.CONFIG));
+
+    /**
      * Telegram notification API key.
      */
     public static final ConfigKey<String> NOTIFICATOR_TELEGRAM_KEY = new StringConfigKey(

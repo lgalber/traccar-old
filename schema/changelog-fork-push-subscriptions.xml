@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd"
+  logicalFilePath="changelog-fork-push-subscriptions">
+
+  <!-- Fork-specific: Web Push subscriptions (one per browser/device where a user enabled notifications). -->
+  <changeSet author="lgalber" id="changelog-fork-push-subscriptions">
+
+    <createTable tableName="tc_push_subscriptions">
+      <column name="id" type="INT" autoIncrement="true">
+        <constraints primaryKey="true" />
+      </column>
+      <column name="userid" type="INT">
+        <constraints nullable="false" />
+      </column>
+      <column name="endpoint" type="VARCHAR(512)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uk_push_subscriptions_endpoint" />
+      </column>
+      <column name="p256dh" type="VARCHAR(128)">
+        <constraints nullable="false" />
+      </column>
+      <column name="auth" type="VARCHAR(64)">
+        <constraints nullable="false" />
+      </column>
+      <column name="createdtime" type="TIMESTAMP">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+
+    <addForeignKeyConstraint baseTableName="tc_push_subscriptions" baseColumnNames="userid"
+                             constraintName="fk_push_subscriptions_userid" onDelete="CASCADE"
+                             referencedTableName="tc_users" referencedColumnNames="id" />
+
+  </changeSet>
+
+</databaseChangeLog>
