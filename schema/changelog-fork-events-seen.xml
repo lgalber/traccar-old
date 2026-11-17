@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd"
+  logicalFilePath="changelog-fork-events-seen">
+
+  <!-- Fork-specific: per-user "seen" marks for events, so pending alerts survive app restarts.
+       Named outside the upstream version sequence to avoid clashing with future upstream changelogs. -->
+  <changeSet author="lgalber" id="changelog-fork-events-seen">
+
+    <createTable tableName="tc_events_seen">
+      <column name="id" type="INT" autoIncrement="true">
+        <constraints primaryKey="true" />
+      </column>
+      <column name="userid" type="INT">
+        <constraints nullable="false" />
+      </column>
+      <column name="eventid" type="INT">
+        <constraints nullable="false" />
+      </column>
+      <column name="seentime" type="TIMESTAMP">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+
+    <addUniqueConstraint tableName="tc_events_seen" columnNames="userid, eventid"
+                         constraintName="uk_events_seen_user_event" />
+
+    <addForeignKeyConstraint baseTableName="tc_events_seen" baseColumnNames="userid"
+                             constraintName="fk_events_seen_userid" onDelete="CASCADE"
+                             referencedTableName="tc_users" referencedColumnNames="id" />
+
+    <addForeignKeyConstraint baseTableName="tc_events_seen" baseColumnNames="eventid"
+                             constraintName="fk_events_seen_eventid" onDelete="CASCADE"
+                             referencedTableName="tc_events" referencedColumnNames="id" />
+
+  </changeSet>
+
+</databaseChangeLog>
