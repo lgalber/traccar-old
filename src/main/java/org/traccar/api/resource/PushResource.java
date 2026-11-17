@@ -15,6 +15,7 @@
  */
 package org.traccar.api.resource;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.traccar.api.BaseResource;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
@@ -46,6 +47,8 @@ import java.util.Map;
 @Consumes(MediaType.APPLICATION_JSON)
 public class PushResource extends BaseResource {
 
+    // Browsers may send more fields than used here (e.g. "expirationTime"); ignore them
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SubscriptionKeys {
         private String p256dh;
         private String auth;
@@ -68,6 +71,7 @@ public class PushResource extends BaseResource {
     }
 
     /** Subscription as produced by the browser's PushSubscription.toJSON(). */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Subscription {
         private String endpoint;
         private SubscriptionKeys keys;
