@@ -59,6 +59,8 @@ services:
       MAIL_SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_SMTP_FROM: ${SMTP_USERNAME:-}
       MAIL_SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Traccar}
+      # Gmail can take more than the 5 s default to answer; avoid dropped alarm emails
+      MAIL_SMTP_TIMEOUT: "30000"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/api/health"]
       interval: 2m
