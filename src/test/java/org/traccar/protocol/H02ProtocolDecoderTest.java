@@ -24,6 +24,10 @@ public class H02ProtocolDecoderTest extends ProtocolTest {
                 position().attribute(Position.KEY_ALARM, Position.ALARM_VIBRATION));
 
         verifyDecode(decoder, buffer(
+                "*HQ,9210166584,V8,185512,A,4124.7342,N,00210.4750,E,000.00,000,191126,F7FFFBFF,214,03,2320,15377183,0,31,121,100#"),
+                position().attribute(Position.KEY_BATTERY_LEVEL, 100));
+
+        verifyDecode(decoder, buffer(
                 "*HQ,9001000002,V8,213945,A,3542.2043,N,38.6508,W,0.00,170,221025,FBFFF9FF,0,0,0,0,22,31,126,0#"),
                 position().location("2025-10-22T21:39:45.000Z", true, 35.70340, -0.64418));
 
