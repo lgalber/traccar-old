@@ -150,6 +150,9 @@ public class WebServer implements LifecycleObject {
         overrideHolder.setInitParameter("cacheControl", cache);
         servletHandler.addServlet(overrideHolder, "/override/*");
 
+        servletHandler.addFilter(
+                new FilterHolder(new NoCacheEntryFilter()), "/*", EnumSet.of(DispatcherType.REQUEST));
+
         FilterHolder filterHolder = new FilterHolder(new OverrideFileFilter());
         filterHolder.setInitParameter("overridePath", overrideReal.toString());
         servletHandler.addFilter(filterHolder, "/*", EnumSet.of(DispatcherType.REQUEST));
