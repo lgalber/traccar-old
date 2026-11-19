@@ -55,6 +55,7 @@ public class EventResource extends BaseResource {
 
     static final int UNSEEN_MAX_DAYS = 30;
     static final int UNSEEN_LIMIT = 50;
+    static final int UNSEEN_ALARM_LIMIT = 200;
 
     @Path("{id}")
     @GET
@@ -69,9 +70,10 @@ public class EventResource extends BaseResource {
     }
 
     /**
-     * Pending alerts of the current user: events of the user's devices from the last {@code days} days that
-     * match one of the user's notification rules with the web channel, and that the user has not marked as seen.
-     * Newest first, at most {@link #UNSEEN_LIMIT}.
+     * Pending alerts of the current user: events of the user's devices that match one of the user's notification
+     * rules with the web channel and that the user has not marked as seen. Alarms stay pending until marked as seen
+     * (last {@link #UNSEEN_MAX_DAYS} days, up to {@link #UNSEEN_ALARM_LIMIT}); other events only from the last
+     * {@code days} days, up to {@link #UNSEEN_LIMIT}. Newest first.
      */
     @Path("unseen")
     @GET
@@ -94,7 +96,8 @@ public class EventResource extends BaseResource {
                 .collect(Collectors.toSet());
 
         Date to = new Date();
-        Date from = new Date(to.getTime() - Duration.ofDays(Math.clamp(days, 1, UNSEEN_MAX_DAYS)).toMillis());
+        Date from = new Date(to.getTime() - Duration.ofDays(UNSEEN_MAX_DAYS).toMillis());
+        Date othersFrom = new Date(to.getTime() - Duration.ofDays(Math.clamp(days, 1, UNSEEN_MAX_DAYS)).toMillis());
 
         List<Event> result = new ArrayList<>();
         for (Device device : storage.getObjects(Device.class, new Request(
@@ -125,8 +128,30 @@ public class EventResource extends BaseResource {
             }
         }
 
-        result.sort(Comparator.comparing(Event::getEventTime).reversed());
-        return result.size() > UNSEEN_LIMIT ? result.subList(0, UNSEEN_LIMIT) : result;
+        return selectPending(result, othersFrom);
+    }
+
+    /**
+     * Newest first: all alarms (up to {@link #UNSEEN_ALARM_LIMIT}), so an unconfirmed alarm is never pushed out by
+     * other notifications, plus other events since {@code othersFrom} (up to {@link #UNSEEN_LIMIT}).
+     */
+    static List<Event> selectPending(List<Event> events, Date othersFrom) {
+        Comparator<Event> newestFirst = Comparator.comparing(Event::getEventTime).reversed();
+        List<Event> alarms = events.stream()
+                .filter(event -> Event.TYPE_ALARM.equals(event.getType()))
+                .sorted(newestFirst)
+                .limit(UNSEEN_ALARM_LIMIT)
+                .toList();
+        List<Event> others = events.stream()
+                .filter(event -> !Event.TYPE_ALARM.equals(event.getType()))
+                .filter(event -> !event.getEventTime().before(othersFrom))
+                .sorted(newestFirst)
+                .limit(UNSEEN_LIMIT)
+                .toList();
+        List<Event> result = new ArrayList<>(alarms);
+        result.addAll(others);
+        result.sort(newestFirst);
+        return result;
     }
 
     /**
