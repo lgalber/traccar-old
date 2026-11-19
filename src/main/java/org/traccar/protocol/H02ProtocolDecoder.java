@@ -422,7 +422,13 @@ public class H02ProtocolDecoder extends BaseProtocolDecoder {
 
         if (parser.hasNext()) {
             String[] values = parser.next().split(",");
-            for (int i = 0; i < values.length; i++) {
+            int count = values.length;
+            if (count == 8 && values[7].trim().matches("\\d{1,3}")) {
+                // SinoTrack ST-901 V8: mcc, mnc, lac, cid, ?, gsm signal, voltage, battery %
+                position.set(Position.KEY_BATTERY_LEVEL, Integer.parseInt(values[7].trim()));
+                count = 7;
+            }
+            for (int i = 0; i < count; i++) {
                 position.set(Position.PREFIX_IO + (i + 1), values[i].trim());
             }
         }
