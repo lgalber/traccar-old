@@ -43,6 +43,10 @@ services:
       COORDINATES_FILTER_INVALID: "true"
       # Count as moving only above ~5 km/h (value in knots; default 0.01)
       EVENT_MOTION_SPEED_THRESHOLD: "2.7"
+      # Stay logged in: 30-day login cookie (kept by phones and home-screen apps) and logins stored
+      # in the database so restarts and deploys do not log everyone out
+      WEB_SESSION_TIMEOUT: "2592000"
+      WEB_PERSIST_SESSION: "true"
       # Public address (links in notifications and emails)
       WEB_URL: ${WEB_URL:-}
       # Notification channels; webpush = browser/phone notifications (fork feature)
